@@ -1,15 +1,22 @@
 import { Fragment } from "react";
 import MeetingDetail from "../../components/meetups/MeetingDetail";
+import { getMeetupCollection } from "../../helpers";
+import { ObjectId } from "mongodb";
+import Head from "next/head";
 
 const MeetingDetails = (props) => {
-  const data = props.meetupData;
+  console.log(props);
   return (
     <Fragment>
+      <Head>
+        <title>{props.meetupData.title}</title>
+        <meta name="description" content={props.meetupData.description} />
+      </Head>
       <MeetingDetail
-        image={data.image}
-        id={data.id}
-        address={data.address}
-        title={data.title}
+        image={props.meetupData.image}
+        id={props.meetupData.id}
+        address={props.meetupData.address}
+        title={props.meetupData.title}
       />
     </Fragment>
   );
@@ -17,39 +24,37 @@ const MeetingDetails = (props) => {
 
 export const getStaticPaths = async () => {
   // make request to backend for all possible ids
+  const meetupsCollection = await getMeetupCollection();
+  const meetups = await meetupsCollection.find().toArray();
 
   return {
     fallback: false,
 
-    paths: [
-      {
-        params: {
-          meetupId: "m1", // not hard coded use id from backend
-        },
+    paths: meetups.map((meetup) => ({
+      params: {
+        meetupId: meetup._id.toString(),
       },
-      {
-        params: {
-          meetupId: "m2", // not hard coded use id from backend
-        },
-      },
-    ],
+    })),
   };
 };
 
 export const getStaticProps = async (context) => {
   const params = context.params;
-  console.log(params);
+  const meetupId = params.meetupId;
 
   // http request
-
+  const meetupsCollection = await getMeetupCollection();
+  const selectedMeetup = await meetupsCollection.findOne({
+    _id: ObjectId(meetupId),
+  });
   return {
     props: {
       meetupData: {
-        image:
-          "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Emirates_Stadium_east_side_at_dusk.jpg/450px-Emirates_Stadium_east_side_at_dusk.jpg",
-        id: params.meetupId,
-        title: "test meetup",
-        address: "test lane, 5, test city",
+        id: selectedMeetup._id.toString(),
+        image: selectedMeetup.image,
+        address: selectedMeetup.address,
+        title: selectedMeetup.title,
+        description: selectedMeetup.description,
       },
     },
   };
